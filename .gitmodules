@@ -1,0 +1,6 @@
+[submodule "main/external/etl"]
+	path = main/external/etl
+	url = git@github.com:ETLCPP/etl.git
+[submodule "main/external/GSL"]
+	path = main/external/GSL
+	url = git@github.com:microsoft/GSL.git

@@ -1,7 +1,0 @@
-dependencies:
-  etl:
-    git: git@github.com:ETLCPP/etl.git
-    version: "20.38.17"
-  gsl:
-    git: git@github.com:microsoft/GSL.git
-    version: "v4.0.0"
