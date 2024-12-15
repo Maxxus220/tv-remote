@@ -32,19 +32,77 @@ static void CSensorEventThread(void* args) {
 }
 
 void IrSensor::SensorEventThread() {
+    SharpProtocolState cur_state = SharpProtocolState::kWaitForMsgStart;
     etl::vector<SensorEvent, kCodeEventLength> event_code{};
     SensorEvent event{};
+
+    auto reset_state_machine = [&]() {
+        cur_state = SharpProtocolState::kWaitForMsgStart;
+        event_code.clear();
+    };
+
     while (true) {
         assert(xQueueReceive(s_sensor_queue, &event, portMAX_DELAY) == pdTRUE);
         printf("| Sensor Event | %s | %10llu us |\n", event.value ? "HIGH" : " LOW", event.time_us);
-        if (event.time_us < 2000 && !event_code.full()) {
-            event_code.emplace_back(event);
+
+        if (cur_state != SharpProtocolState::kWaitForMsgStart && event.value == true &&
+            event.time_us > 2000) {
+            printf("Received message start when not expecting one! Discarding active message.\n");
+            reset_state_machine();
+            cur_state = SharpProtocolState::kWaitForStartPulse;
+            continue;
         }
-        if (event_code.full()) {
-            etl::vector<bool, kCodeBitLength> bit_code =
-                SensorEventCodeToBitCode(gsl::span<SensorEvent, kCodeEventLength>(event_code));
-            uint16_t code_val = BitCodeToUint16(gsl::span<bool, kCodeBitLength>(bit_code));
-            printf("Code: %4x\n", code_val);
+
+        switch (cur_state) {
+            case SharpProtocolState::kWaitForMsgStart:
+                if (event.value == true && event.time_us > 2000) {
+                    cur_state = SharpProtocolState::kWaitForStartPulse;
+                    continue;
+                } else {
+                    printf("Was expecting message start event and received: %s %llu us\n",
+                           event.value ? "HIGH" : "LOW", event.time_us);
+                    // cur_state stays the same (kWaitForMsgStart)
+                    continue;
+                }
+                break;
+            case SharpProtocolState::kWaitForStartPulse:
+                if (event.value == false && event.time_us < 500) {
+                    if (event_code.size() < kCodeEventLength) {
+                        event_code.emplace_back(event);
+                        cur_state = SharpProtocolState::kWaitForLogicPulse;
+                        continue;
+                    } else {
+                        // Message complete
+                        etl::vector<bool, kCodeBitLength> bit_code = SensorEventCodeToBitCode(
+                            gsl::span<SensorEvent, kCodeEventLength>(event_code));
+                        uint16_t code_val =
+                            BitCodeToUint16(gsl::span<bool, kCodeBitLength>(bit_code));
+                        printf("Received code: 0x%4X\n", code_val);
+
+                        reset_state_machine();
+                        continue;
+                    }
+                } else {
+                    printf("Was expecting start pulse and received: %s %llu us\n",
+                           event.value ? "HIGH" : "LOW", event.time_us);
+                    printf("Resetting message state machine and discarding current message.\n");
+                    reset_state_machine();
+                    continue;
+                }
+                break;
+            case SharpProtocolState::kWaitForLogicPulse:
+                if (event.value == true && event.time_us > 500 && event.time_us < 2000) {
+                    event_code.emplace_back(event);
+                    cur_state = SharpProtocolState::kWaitForStartPulse;
+                    continue;
+                } else {
+                    printf("Was expecting logic pulse and received: %s %llu us\n",
+                           event.value ? "HIGH" : "LOW", event.time_us);
+                    printf("Resetting message state machine and discarding current message.\n");
+                    reset_state_machine();
+                    continue;
+                }
+                break;
         }
     }
 }

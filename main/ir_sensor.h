@@ -29,6 +29,8 @@ class IrSensor {
     static constexpr gpio_num_t kIrSensorGpioNum = GPIO_NUM_23;
 
    private:
+    enum class SharpProtocolState { kWaitForMsgStart, kWaitForStartPulse, kWaitForLogicPulse };
+
     static constexpr size_t kCodeBitLength = 15;
     static constexpr size_t kCodeEventLength = kCodeBitLength * 2;
 
