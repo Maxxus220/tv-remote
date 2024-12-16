@@ -11,11 +11,6 @@ class IrSensor {
     ~IrSensor() = default;
 
    public:
-    struct SensorEvent {
-        bool value;          // What state the sensor was in. High or low.
-        uint64_t time_us;    // Time in us that sensor was in that state.
-    };
-
     static IrSensor& GetInstance() {
         static IrSensor instance{};
         return instance;
@@ -30,13 +25,5 @@ class IrSensor {
 
    private:
     enum class SharpProtocolState { kWaitForMsgStart, kWaitForStartPulse, kWaitForLogicPulse };
-
-    static constexpr size_t kCodeBitLength = 15;
-    static constexpr size_t kCodeEventLength = kCodeBitLength * 2;
-
-    static etl::vector<bool, kCodeBitLength> SensorEventCodeToBitCode(
-        const gsl::span<SensorEvent, kCodeEventLength> event_code);
-    static uint16_t BitCodeToUint16(const gsl::span<bool, kCodeBitLength> bit_code);
-
     TaskHandle_t sensor_event_thread_{};
 };

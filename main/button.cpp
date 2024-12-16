@@ -19,17 +19,18 @@ void Button::Init() {
                                         .pull_down_en = GPIO_PULLDOWN_DISABLE,
                                         .intr_type = GPIO_INTR_NEGEDGE};
     assert(gpio_config(&kButtonConf) == ESP_OK);
-    assert(gpio_isr_handler_add(kButtonGpioNum, CButtonPressedThread,
-                                static_cast<void*>(this)) == ESP_OK);
-    assert(gpio_isr_handler_add(kButtonGpioNum, IsrHandler,
-                                static_cast<void*>(this)) == ESP_OK);
+    assert(gpio_isr_handler_add(kButtonGpioNum, CButtonPressedThread, static_cast<void*>(this)) ==
+           ESP_OK);
+    assert(gpio_isr_handler_add(kButtonGpioNum, IsrHandler, static_cast<void*>(this)) == ESP_OK);
 
-    assert(xTaskCreate(CButtonPressedThread, "Button Press", 5000,
-                       static_cast<void*>(this), 2,
+    constexpr uint32_t kButtonPressedStackSize = 5000;
+    constexpr UBaseType_t kButtonPressedPriority = 2;
+    assert(xTaskCreate(CButtonPressedThread, "Button Press", kButtonPressedStackSize,
+                       static_cast<void*>(this), kButtonPressedPriority,
                        &button_pressed_thread_) == pdPASS);
 }
 
-static void CButtonPressedThread(void* args) {
+void CButtonPressedThread(void* args) {
     Button* instance = static_cast<Button*>(args);
     instance->ButtonPressedThread();
 }
@@ -48,7 +49,7 @@ void Button::ButtonPressedThread() {
     }
 }
 
-static void IsrHandler(void* args) {
+void IsrHandler(void* args) {
     // TODO: Add cooldown
     xSemaphoreGiveFromISR(s_button_pressed_sem_, nullptr);
 }

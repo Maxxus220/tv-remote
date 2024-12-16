@@ -4,6 +4,3 @@
 [submodule "main/external/GSL"]
 	path = main/external/GSL
 	url = git@github.com:microsoft/GSL.git
-[submodule "main/external/EtcPal"]
-	path = main/external/EtcPal
-	url = https://github.com/ETCLabs/EtcPal.git
