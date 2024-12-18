@@ -11,7 +11,7 @@ static void IRAM_ATTR IrqHandler(void* args);
 static QueueHandle_t s_sensor_queue = nullptr;
 
 void IrSensor::Init() {
-    constexpr int kSensorQueueSize = 100;
+    constexpr int kSensorQueueSize = 200;
     s_sensor_queue = xQueueCreate(kSensorQueueSize, sizeof(IrEvent));
 
     constexpr gpio_config_t kSensorConf{.pin_bit_mask = 1ULL << kIrSensorGpioNum,
@@ -46,7 +46,7 @@ void IrSensor::SensorEventThread() {
 
     while (true) {
         assert(xQueueReceive(s_sensor_queue, &event, portMAX_DELAY) == pdTRUE);
-        printf("| IR Event | %4s | %10llu us |\n", IrValueToString(event.value), event.time_us);
+        // printf("| IR Event | %4s | %10llu us |\n", IrValueToString(event.value), event.time_us);
 
         if (cur_state != SharpProtocolState::kWaitForMsgStart && event.value == IrValue::kLow &&
             event.time_us > 2000) {
@@ -80,7 +80,7 @@ void IrSensor::SensorEventThread() {
                             gsl::span<IrEvent, kCodeEventLength>(event_code));
                         uint16_t code_val =
                             BitCodeToUint16(gsl::span<bool, kCodeBitLength>(bit_code));
-                        printf("Received code: 0x%4X\n", code_val);
+                        printf("Received code: 0x%04X\n", code_val);
 
                         reset_state_machine();
                         continue;

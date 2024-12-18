@@ -58,7 +58,7 @@ uint16_t BitCodeToUint16(const gsl::span<bool, kCodeBitLength> bit_code) {
 etl::vector<bool, kCodeBitLength> Uint16ToBitCode(uint16_t code) {
     etl::vector<bool, kCodeBitLength> bit_code{};
     for (int bit_index = 14; bit_index >= 0; --bit_index) {
-        bit_code.emplace_back((code & (1 << bit_index)) == 1);
+        bit_code.emplace_back((code & (1 << bit_index)) != 0);
     }
     return bit_code;
 }

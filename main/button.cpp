@@ -1,6 +1,8 @@
 #include "button.h"
 
 #include "driver/gpio.h"
+
+#include "ir_transmitter.h"
 #include "real_time.h"
 
 static void CButtonPressedThread(void* args);
@@ -36,16 +38,10 @@ void CButtonPressedThread(void* args) {
 }
 
 void Button::ButtonPressedThread() {
-    uint64_t last_time_us = 0;
     while (true) {
         assert(xSemaphoreTake(s_button_pressed_sem_, portMAX_DELAY) == pdTRUE);
-        printf("Button pressed!\n");
-
-        uint64_t now_us = RealTime::GetInstance().GetTimeUs();
-        uint64_t diff_us = RealTime::GetTimeDiffUs(last_time_us, now_us);
-        printf("Time since last button press: %llu us\n", diff_us);
-
-        last_time_us = now_us;
+        IrTransmitter::GetInstance().SendCode(0x41A2);
+        IrTransmitter::GetInstance().SendCode(0x425D);
     }
 }
 
