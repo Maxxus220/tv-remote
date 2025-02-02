@@ -5,7 +5,7 @@
 
 using namespace IrCommon;
 
-static void CIrTransmitThread(void* args);
+static void CTxThread(void* args);
 static bool IRAM_ATTR TransmitTimerIrqHandler(gptimer_handle_t timer,
                                               const gptimer_alarm_event_data_t* event_data,
                                               void* user_ctx);
@@ -31,6 +31,7 @@ void IrTransmitter::Init() {
         .timer_sel = LEDC_TIMER_0,
         .duty = 0,
         .hpoint = 0,
+        .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
         .flags{
             .output_invert = 0,
         },
@@ -45,7 +46,7 @@ void IrTransmitter::Init() {
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = 1000000,    // 1 us per tick
         .intr_priority = 0,
-        .flags = {.intr_shared = 0, .backup_before_sleep = 0}};
+        .flags = {.intr_shared = 0, .allow_pd = 0, .backup_before_sleep = 0}};
     assert(gptimer_new_timer(&kTransmitTimerConfig, &transmit_timer_) == ESP_OK);
 
     constexpr gptimer_event_callbacks_t kTransmitTimerCallbacksConfig{.on_alarm =
@@ -57,23 +58,21 @@ void IrTransmitter::Init() {
     constexpr int kIrTransmitQueueSize = 5;
     ir_transmit_queue_ = xQueueCreate(kIrTransmitQueueSize, sizeof(uint16_t));
 
-    constexpr uint32_t kIrTransmitStackSize = 5000;
-    constexpr UBaseType_t kIrTransmitPriority = 2;
-    assert(xTaskCreate(CIrTransmitThread, "IR Transmit", kIrTransmitStackSize,
-                       static_cast<void*>(this), kIrTransmitPriority,
-                       &ir_transmit_thread_) == pdPASS);
+    constexpr uint32_t kTxThreadStackSize = 5000;
+    constexpr UBaseType_t kTxThreadPriority = 2;
+    assert(xTaskCreate(CTxThread, "IR Transmit", kTxThreadStackSize, static_cast<void*>(this),
+                       kTxThreadPriority, &ir_transmit_thread_) == pdPASS);
 }
 
 void IrTransmitter::SendCode(const uint16_t code) {
     assert(xQueueSend(ir_transmit_queue_, &code, portMAX_DELAY) == pdTRUE);
 }
 
-void CIrTransmitThread(void* args) {
-    IrTransmitter* instance = static_cast<IrTransmitter*>(args);
-    instance->IrTransmitThread();
+void CTxThread(void* args) {
+    static_cast<IrTransmitter*>(args)->TxThread();
 }
 
-void IrTransmitter::IrTransmitThread() {
+void IrTransmitter::TxThread() {
     uint16_t code{};
     while (true) {
         assert(xQueueReceive(ir_transmit_queue_, &code, portMAX_DELAY) == pdTRUE);
@@ -125,5 +124,6 @@ bool TransmitTimerIrqHandler(gptimer_handle_t timer, const gptimer_alarm_event_d
 
     BaseType_t higher_priority_task_woken{};
     xSemaphoreGiveFromISR(s_timer_alarm_fired_sem_, &higher_priority_task_woken);
+    // TODO: Add safe logging for failure.
     return higher_priority_task_woken == pdTRUE;
 }

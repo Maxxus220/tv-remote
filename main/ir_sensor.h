@@ -12,8 +12,8 @@ class IrSensor {
 
    public:
     static IrSensor& GetInstance() {
-        static IrSensor instance{};
-        return instance;
+        static IrSensor s_instance{};
+        return s_instance;
     }
 
     void Init();

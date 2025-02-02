@@ -11,6 +11,8 @@ class IButtonIrqHandle {
    public:
     virtual ~IButtonIrqHandle() = default;
     virtual ButtonPressIrqCb GetButtonPressIrqCb() = 0;
+    virtual void SetLastPressTimeUs(uint64_t time_us) = 0;
+    virtual uint64_t GetLastPressTimeUs() = 0;
 };
 
 template <gpio_num_t kGpioNum>
@@ -21,17 +23,21 @@ class Button : public IButtonIrqHandle {
 
    public:
     static Button& GetInstance() {
-        static Button instance{};
-        return instance;
+        static Button s_instance{};
+        return s_instance;
     }
 
     void Init();
     void RegisterButtonPressIrqCb(ButtonPressIrqCb cb);
     ButtonPressIrqCb GetButtonPressIrqCb() final;
+    void SetLastPressTimeUs(uint64_t time_us) final;
+    uint64_t GetLastPressTimeUs() final;
 
    private:
     TaskHandle_t button_pressed_thread_{};
-    ButtonPressIrqCb button_press_cb_;
+    ButtonPressIrqCb button_press_cb_{};
+
+    uint64_t last_press_time_us_{0};
 };
 
 template <gpio_num_t kGpioNum>
@@ -55,6 +61,22 @@ ButtonPressIrqCb Button<kGpioNum>::GetButtonPressIrqCb() {
     return button_press_cb_;
 }
 
+template <gpio_num_t kGpioNum>
+void Button<kGpioNum>::SetLastPressTimeUs(uint64_t time_us) {
+    last_press_time_us_ = time_us;
+}
+
+template <gpio_num_t kGpioNum>
+uint64_t Button<kGpioNum>::GetLastPressTimeUs() {
+    return last_press_time_us_;
+}
+
 constexpr gpio_num_t kButton0GpioNum = GPIO_NUM_34;
+constexpr gpio_num_t kButton1GpioNum = GPIO_NUM_35;
+constexpr gpio_num_t kButton2GpioNum = GPIO_NUM_32;
+constexpr gpio_num_t kButton3GpioNum = GPIO_NUM_33;
 
 using Button0 = Button<kButton0GpioNum>;
+using Button1 = Button<kButton1GpioNum>;
+using Button2 = Button<kButton2GpioNum>;
+using Button3 = Button<kButton3GpioNum>;

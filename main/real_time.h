@@ -9,8 +9,8 @@ class RealTime {
 
    public:
     static RealTime& GetInstance() {
-        static RealTime instance{};
-        return instance;
+        static RealTime s_instance{};
+        return s_instance;
     }
 
     /**

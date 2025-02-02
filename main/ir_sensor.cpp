@@ -23,15 +23,14 @@ void IrSensor::Init() {
     assert(gpio_isr_handler_add(kIrSensorGpioNum, IrqHandler, nullptr) == ESP_OK);
 
     constexpr uint32_t kSensorEventThreadStackSize = 5000;
-    constexpr UBaseType_t kSensorEventThreadPriority = 2;
+    constexpr UBaseType_t kSensorEventThreadPriority = 4;
     assert(xTaskCreate(CSensorEventThread, "Sensor Event", kSensorEventThreadStackSize,
                        static_cast<void*>(this), kSensorEventThreadPriority,
                        &sensor_event_thread_) == pdPASS);
 }
 
 static void CSensorEventThread(void* args) {
-    IrSensor* instance = static_cast<IrSensor*>(args);
-    instance->SensorEventThread();
+    static_cast<IrSensor*>(args)->SensorEventThread();
 }
 
 void IrSensor::SensorEventThread() {
@@ -119,7 +118,8 @@ static void IrqHandler(void* args) {
     // GPIO high means IR active aka HIGH
     IrEvent event{.value = gpio_val ? IrValue::kHigh : IrValue::kLow,
                   .time_us = RealTime::GetTimeDiffUs(s_last_time_us, cur_time_us)};
-    assert(xQueueSendFromISR(s_sensor_queue, &event, nullptr) == pdTRUE);
+    xQueueSendFromISR(s_sensor_queue, &event, nullptr);
+    // TODO: Add deferred logging so that we can log here when the send fails.
 
     s_last_time_us = cur_time_us;
 }

@@ -5,6 +5,7 @@ idf_component_register(
         "ir_common.cpp"
         "real_time.cpp" 
         "button.cpp" 
+        "button_handler.cpp"
         "main.cpp"
     INCLUDE_DIRS 
         "${CMAKE_CURRENT_LIST_DIR}" 

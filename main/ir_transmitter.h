@@ -13,13 +13,13 @@ class IrTransmitter {
 
    public:
     static IrTransmitter& GetInstance() {
-        static IrTransmitter instance{};
-        return instance;
+        static IrTransmitter s_instance{};
+        return s_instance;
     }
 
     void Init();
     void SendCode(uint16_t code);
-    void IrTransmitThread();
+    void TxThread();
 
    private:
     static constexpr gpio_num_t kIrTransmitterPwmGpioNum = GPIO_NUM_23;
