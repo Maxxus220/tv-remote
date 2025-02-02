@@ -3,7 +3,7 @@
 #include "ir_common.h"
 #include "real_time.h"
 
-using namespace IrCommon;
+using namespace ir_common;
 
 static void CSensorEventThread(void* args);
 static void IRAM_ATTR IrqHandler(void* args);
@@ -48,7 +48,7 @@ void IrSensor::SensorEventThread() {
         // printf("| IR Event | %4s | %10llu us |\n", IrValueToString(event.value), event.time_us);
 
         if (cur_state != SharpProtocolState::kWaitForMsgStart && event.value == IrValue::kLow &&
-            event.time_us > 2000) {
+            event.time_us > kMsgStartMinUs) {
             printf("Received message start when not expecting one! Discarding active message.\n");
             reset_state_machine();
             cur_state = SharpProtocolState::kWaitForStartPulse;
@@ -57,7 +57,8 @@ void IrSensor::SensorEventThread() {
 
         switch (cur_state) {
             case SharpProtocolState::kWaitForMsgStart:
-                if (event.value == IrValue::kLow && event.time_us > 2000) {
+                // TODO: Could rework this file to take events and map them to an enum to make this clearer.
+                if (event.value == IrValue::kLow && event.time_us > kMsgStartMinUs) {
                     cur_state = SharpProtocolState::kWaitForStartPulse;
                     continue;
                 } else {
@@ -68,7 +69,7 @@ void IrSensor::SensorEventThread() {
                 }
                 break;
             case SharpProtocolState::kWaitForStartPulse:
-                if (event.value == IrValue::kHigh && event.time_us < 500) {
+                if (event.value == IrValue::kHigh && event.time_us < kStartCodeMaxUs) {
                     if (event_code.size() < kCodeEventLength) {
                         event_code.emplace_back(event);
                         cur_state = SharpProtocolState::kWaitForLogicPulse;
@@ -93,7 +94,8 @@ void IrSensor::SensorEventThread() {
                 }
                 break;
             case SharpProtocolState::kWaitForLogicPulse:
-                if (event.value == IrValue::kLow && event.time_us > 500 && event.time_us < 2000) {
+                if (event.value == IrValue::kLow && event.time_us > kLogic0MinUs &&
+                    event.time_us < kLogic1MaxUs) {
                     event_code.emplace_back(event);
                     cur_state = SharpProtocolState::kWaitForStartPulse;
                     continue;

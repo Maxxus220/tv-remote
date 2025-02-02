@@ -3,7 +3,7 @@
 #include "esp_attr.h"
 #include "ir_common.h"
 
-using namespace IrCommon;
+using namespace ir_common;
 
 static void CTxThread(void* args);
 static bool IRAM_ATTR TransmitTimerIrqHandler(gptimer_handle_t timer,

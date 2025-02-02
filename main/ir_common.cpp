@@ -1,6 +1,6 @@
 #include "ir_common.h"
 
-namespace IrCommon {
+namespace ir_common {
 
 const char* IrValueToString(IrValue value) {
     switch (value) {
@@ -20,12 +20,12 @@ etl::vector<bool, kCodeBitLength> GpioEventCodeToBitCode(
 
     for (int event_index = 0; event_index < event_code.size(); event_index += 2) {
         assert(event_code[event_index].value == IrValue::kHigh);
-        assert(event_code[event_index].time_us < 500);
+        assert(event_code[event_index].time_us < kStartCodeMaxUs);
         assert(event_code[event_index + 1].value == IrValue::kLow);
-        assert(event_code[event_index + 1].time_us > 500 &&
-               event_code[event_index + 1].time_us < 2000);
+        assert(event_code[event_index + 1].time_us > kLogic0MinUs &&
+               event_code[event_index + 1].time_us < kLogic1MaxUs);
 
-        bool logic_val = event_code[event_index + 1].time_us > 1000 ? true : false;
+        bool logic_val = event_code[event_index + 1].time_us > kLogic1MinUs ? true : false;
         bit_code.emplace_back(logic_val);
     }
 
@@ -63,4 +63,4 @@ etl::vector<bool, kCodeBitLength> Uint16ToBitCode(uint16_t code) {
     return bit_code;
 }
 
-}    // namespace IrCommon
+}    // namespace ir_common
