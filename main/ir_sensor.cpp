@@ -45,10 +45,19 @@ void IrSensor::SensorEventThread() {
 
     while (true) {
         assert(xQueueReceive(s_sensor_queue, &event, portMAX_DELAY) == pdTRUE);
+        std::optional<IrEventType> event_type_opt = EventToEventType(event);
         // printf("| IR Event | %4s | %10llu us |\n", IrValueToString(event.value), event.time_us);
 
-        if (cur_state != SharpProtocolState::kWaitForMsgStart && event.value == IrValue::kLow &&
-            event.time_us > kMsgStartMinUs) {
+        if (!event_type_opt.has_value()) {
+            printf("Received invalid event type! Discarding active message.\n");
+            reset_state_machine();
+            continue;
+        }
+
+        IrEventType event_type = event_type_opt.value();
+
+        if (cur_state != SharpProtocolState::kWaitForMsgStart &&
+            event_type == IrEventType::kMsgStart) {
             printf("Received message start when not expecting one! Discarding active message.\n");
             reset_state_machine();
             cur_state = SharpProtocolState::kWaitForStartPulse;
@@ -57,8 +66,7 @@ void IrSensor::SensorEventThread() {
 
         switch (cur_state) {
             case SharpProtocolState::kWaitForMsgStart:
-                // TODO: Could rework this file to take events and map them to an enum to make this clearer.
-                if (event.value == IrValue::kLow && event.time_us > kMsgStartMinUs) {
+                if (event_type == IrEventType::kMsgStart) {
                     cur_state = SharpProtocolState::kWaitForStartPulse;
                     continue;
                 } else {
@@ -69,7 +77,7 @@ void IrSensor::SensorEventThread() {
                 }
                 break;
             case SharpProtocolState::kWaitForStartPulse:
-                if (event.value == IrValue::kHigh && event.time_us < kStartCodeMaxUs) {
+                if (event_type == IrEventType::kStartCode) {
                     if (event_code.size() < kCodeEventLength) {
                         event_code.emplace_back(event);
                         cur_state = SharpProtocolState::kWaitForLogicPulse;
@@ -94,8 +102,7 @@ void IrSensor::SensorEventThread() {
                 }
                 break;
             case SharpProtocolState::kWaitForLogicPulse:
-                if (event.value == IrValue::kLow && event.time_us > kLogic0MinUs &&
-                    event.time_us < kLogic1MaxUs) {
+                if (event_type == IrEventType::kLogic0 || event_type == IrEventType::kLogic1) {
                     event_code.emplace_back(event);
                     cur_state = SharpProtocolState::kWaitForStartPulse;
                     continue;

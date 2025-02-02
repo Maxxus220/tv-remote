@@ -14,6 +14,22 @@ const char* IrValueToString(IrValue value) {
     }
 }
 
+std::optional<IrEventType> EventToEventType(IrEvent event) {
+    if (event.value == IrValue::kHigh && event.time_us < kStartCodeMaxUs) {
+        return IrEventType::kStartCode;
+    } else if (event.value == IrValue::kLow && event.time_us >= kLogic0MinUs &&
+               event.time_us < kLogic0MaxUs) {
+        return IrEventType::kLogic0;
+    } else if (event.value == IrValue::kLow && event.time_us >= kLogic1MinUs &&
+               event.time_us < kLogic1MaxUs) {
+        return IrEventType::kLogic1;
+    } else if (event.value == IrValue::kLow && event.time_us >= kMsgStartMinUs) {
+        return IrEventType::kMsgStart;
+    } else {
+        return std::nullopt;
+    }
+}
+
 etl::vector<bool, kCodeBitLength> GpioEventCodeToBitCode(
     const gsl::span<IrEvent, kCodeEventLength> event_code) {
     etl::vector<bool, kCodeBitLength> bit_code{};
