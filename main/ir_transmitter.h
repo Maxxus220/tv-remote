@@ -22,7 +22,7 @@ class IrTransmitter {
     void IrTransmitThread();
 
    private:
-    static constexpr gpio_num_t kIrTransmitterPwmGpioNum = GPIO_NUM_22;
+    static constexpr gpio_num_t kIrTransmitterPwmGpioNum = GPIO_NUM_23;
 
     gptimer_handle_t transmit_timer_{};
 

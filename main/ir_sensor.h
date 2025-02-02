@@ -21,7 +21,7 @@ class IrSensor {
     // This needs to be public so that the CSensorEventThread can call in.
     void SensorEventThread();
 
-    static constexpr gpio_num_t kIrSensorGpioNum = GPIO_NUM_23;
+    static constexpr gpio_num_t kIrSensorGpioNum = GPIO_NUM_22;
 
    private:
     enum class SharpProtocolState { kWaitForMsgStart, kWaitForStartPulse, kWaitForLogicPulse };

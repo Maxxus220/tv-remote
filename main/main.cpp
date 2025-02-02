@@ -5,6 +5,7 @@
 #include "button.h"
 #include "ir_sensor.h"
 #include "ir_transmitter.h"
+#include "led.h"
 #include "real_time.h"
 
 extern "C" {
@@ -13,25 +14,32 @@ void app_main(void) {
     fflush(stdout);
 
     gpio_install_isr_service(0);
-    RealTime::GetInstance().Init();
-    IrTransmitter::GetInstance().Init();
-    IrSensor::GetInstance().Init();
-    Button::GetInstance().Init();
 
-    constexpr gpio_config_t kTestLedGpioConfig{
-        .pin_bit_mask = 1 << GPIO_NUM_5,
-        .mode = GPIO_MODE_OUTPUT,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .intr_type = GPIO_INTR_DISABLE,
-    };
-    assert(gpio_config(&kTestLedGpioConfig) == ESP_OK);
+    RealTime& real_time = RealTime::GetInstance();
+    IrTransmitter& ir_transmitter = IrTransmitter::GetInstance();
+    IrSensor& ir_sensor = IrSensor::GetInstance();
+    Button0& button_0 = Button0::GetInstance();
+    Led0& led_0 = Led0::GetInstance();
+    Led1& led_1 = Led1::GetInstance();
+    Led2& led_2 = Led2::GetInstance();
+
+    real_time.Init();
+    ir_transmitter.Init();
+    // ir_sensor.Init();
+    button_0.Init();
+    led_0.Init();
+    led_1.Init();
+    led_2.Init();
 
     while (true) {
-        gpio_set_level(GPIO_NUM_5, 1);
-        sleep(1);
-        gpio_set_level(GPIO_NUM_5, 0);
-        sleep(1);
+        // led_0.Set(1);
+        // led_1.Set(1);
+        // led_2.Set(1);
+        // sleep(1);
+        // led_0.Set(0);
+        // led_1.Set(0);
+        // led_2.Set(0);
+        // sleep(1);
     }
 }
 }
