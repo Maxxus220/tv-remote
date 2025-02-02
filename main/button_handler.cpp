@@ -10,9 +10,6 @@ static void ButtonPress3IrqCb();
 
 static void CHandleButtonPressThread(void* args);
 
-// ButtonHandler::ButtonHandler()
-//     : led_0_(Led0::GetInstance()), led_1_(Led1::GetInstance()), led_2_(Led2::GetInstance()) {}
-
 void ButtonHandler::Init() {
     s_button_press_queue = xQueueCreate(kButtonPressQueueLength, sizeof(uint8_t));
 
@@ -109,6 +106,8 @@ void ButtonHandler::HandleButton2Press() {
 void ButtonHandler::HandleButton3Press() {
     switch (key_layer_) {
         case 0:
+            ir_transmitter_.SendCode(0x41A2);
+            ir_transmitter_.SendCode(0x425D);
             break;
         case 1:
             break;

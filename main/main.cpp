@@ -40,15 +40,6 @@ void app_main(void) {
     led_2.Init();
     button_handler.Init();
 
-    while (true) {
-        // led_0.Set(1);
-        // led_1.Set(1);
-        // led_2.Set(1);
-        // sleep(1);
-        // led_0.Set(0);
-        // led_1.Set(0);
-        // led_2.Set(0);
-        // sleep(1);
-    }
+    while (true) {}
 }
 }
