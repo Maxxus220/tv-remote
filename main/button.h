@@ -1,6 +1,7 @@
 #pragma once
 
 #include "driver/gpio.h"
+#include "driver/rtc_io.h"
 #include "freertos/FreeRTOS.h"
 
 typedef void (*ButtonPressIrqCb)(void);
@@ -42,6 +43,9 @@ class Button : public IButtonIrqHandle {
 
 template <gpio_num_t kGpioNum>
 void Button<kGpioNum>::Init() {
+    // This is required to reinitialize the GPIO as digital after a deep sleep causing them to become RTC IO
+    assert(rtc_gpio_deinit(kGpioNum) == ESP_OK);
+
     constexpr gpio_config_t kButtonConf{.pin_bit_mask = 1ULL << kGpioNum,
                                         .mode = GPIO_MODE_INPUT,
                                         .pull_up_en = GPIO_PULLUP_DISABLE,

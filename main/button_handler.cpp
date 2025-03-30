@@ -2,6 +2,10 @@
 
 #include "button.h"
 
+#include "esp_sleep.h"
+
+#include <optional>
+
 static QueueHandle_t s_button_press_queue;
 static void ButtonPress0IrqCb();
 static void ButtonPress1IrqCb();
@@ -17,6 +21,30 @@ void ButtonHandler::Init() {
     Button1::GetInstance().RegisterButtonPressIrqCb(ButtonPress1IrqCb);
     Button2::GetInstance().RegisterButtonPressIrqCb(ButtonPress2IrqCb);
     Button3::GetInstance().RegisterButtonPressIrqCb(ButtonPress3IrqCb);
+
+    // Handle deep sleep wakeup button presses
+    uint64_t gpio_bit_mask = esp_sleep_get_ext1_wakeup_status();
+    std::optional<uint8_t> button_press_num = std::nullopt;
+    if ((gpio_bit_mask & (1ULL << kButton0GpioNum)) != 0) {
+        static constexpr uint8_t kButton0PressNum = 0;
+        button_press_num = kButton0PressNum;
+    } else if ((gpio_bit_mask & (1ULL << kButton1GpioNum)) != 0) {
+        static constexpr uint8_t kButton1PressNum = 1;
+        button_press_num = kButton1PressNum;
+    } else if ((gpio_bit_mask & (1ULL << kButton2GpioNum)) != 0) {
+        static constexpr uint8_t kButton2PressNum = 2;
+        button_press_num = kButton2PressNum;
+    } else if ((gpio_bit_mask & (1ULL << kButton3GpioNum)) != 0) {
+        static constexpr uint8_t kButton3PressNum = 3;
+        button_press_num = kButton3PressNum;
+    } else if (gpio_bit_mask != 0) {
+        printf("Unexpected EXT1 wakeup GPIO!\n");
+        assert(false);
+    }
+
+    if (button_press_num.has_value()) {
+        assert(xQueueSend(s_button_press_queue, &button_press_num.value(), 0) == pdTRUE);
+    }
 
     led_2_.Set(1);
 

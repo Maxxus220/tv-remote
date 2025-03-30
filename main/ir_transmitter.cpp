@@ -31,7 +31,6 @@ void IrTransmitter::Init() {
         .timer_sel = LEDC_TIMER_0,
         .duty = 0,
         .hpoint = 0,
-        .sleep_mode = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
         .flags{
             .output_invert = 0,
         },
@@ -46,7 +45,7 @@ void IrTransmitter::Init() {
         .direction = GPTIMER_COUNT_UP,
         .resolution_hz = 1000000,    // 1 us per tick
         .intr_priority = 0,
-        .flags = {.intr_shared = 0, .allow_pd = 0, .backup_before_sleep = 0}};
+        .flags = {.intr_shared = 0, .backup_before_sleep = 0}};
     assert(gptimer_new_timer(&kTransmitTimerConfig, &transmit_timer_) == ESP_OK);
 
     constexpr gptimer_event_callbacks_t kTransmitTimerCallbacksConfig{.on_alarm =

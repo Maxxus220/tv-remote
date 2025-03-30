@@ -8,6 +8,7 @@
 #include "ir_transmitter.h"
 #include "led.h"
 #include "real_time.h"
+#include "sleep.h"
 
 extern "C" {
 void app_main(void) {
@@ -39,6 +40,9 @@ void app_main(void) {
     led_1.Init();
     led_2.Init();
     button_handler.Init();
+
+    mcu_sleep::SetupSleep();
+    // mcu_sleep::EnableSleepIfUnused();
 
     while (true) {}
 }
