@@ -17,6 +17,7 @@ void app_main(void) {
 
     gpio_install_isr_service(0);
 
+    gpio_deep_sleep_hold_en();
     RealTime& real_time = RealTime::GetInstance();
     IrTransmitter& ir_transmitter = IrTransmitter::GetInstance();
     // IrSensor& ir_sensor = IrSensor::GetInstance();
@@ -42,8 +43,10 @@ void app_main(void) {
     button_handler.Init();
 
     mcu_sleep::SetupSleep();
-    // mcu_sleep::EnableSleepIfUnused();
+    mcu_sleep::EnableSleepIfUnused();
 
-    while (true) {}
+    while (true) {
+        vTaskDelay(portMAX_DELAY);
+    }
 }
 }

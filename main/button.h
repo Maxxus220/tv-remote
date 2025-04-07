@@ -76,9 +76,16 @@ uint64_t Button<kGpioNum>::GetLastPressTimeUs() {
 }
 
 constexpr gpio_num_t kButton0GpioNum = GPIO_NUM_34;
+constexpr gpio_num_t kButton0InverseGpioNum = GPIO_NUM_25;
+
 constexpr gpio_num_t kButton1GpioNum = GPIO_NUM_35;
+constexpr gpio_num_t kButton1InverseGpioNum = GPIO_NUM_14;
+
 constexpr gpio_num_t kButton2GpioNum = GPIO_NUM_32;
+constexpr gpio_num_t kButton2InverseGpioNum = GPIO_NUM_12;
+
 constexpr gpio_num_t kButton3GpioNum = GPIO_NUM_33;
+constexpr gpio_num_t kButton3InverseGpioNum = GPIO_NUM_13;
 
 using Button0 = Button<kButton0GpioNum>;
 using Button1 = Button<kButton1GpioNum>;

@@ -1,6 +1,7 @@
 #include "sleep.h"
 
 #include "button.h"
+#include "led.h"
 
 #include "esp_sleep.h"
 
@@ -13,6 +14,27 @@ extern "C" {
 void vApplicationIdleHook() {
     // TODO: Async logging
     if (allow_sleep) {
+        TickType_t kMaxIdleTimeMs = 15000 / portTICK_PERIOD_MS;    // 15000ms
+        vTaskDelay(kMaxIdleTimeMs);
+
+        rtc_gpio_init(kLed0GpioNum);
+        rtc_gpio_init(kLed1GpioNum);
+        rtc_gpio_init(kLed2GpioNum);
+        rtc_gpio_set_direction(kLed0GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
+        rtc_gpio_set_direction(kLed1GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
+        rtc_gpio_set_direction(kLed2GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
+        rtc_gpio_set_direction_in_sleep(kLed0GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
+        rtc_gpio_set_direction_in_sleep(kLed1GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
+        rtc_gpio_set_direction_in_sleep(kLed2GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
+        rtc_gpio_set_level(kLed0GpioNum, 0);
+        rtc_gpio_set_level(kLed1GpioNum, 0);
+        rtc_gpio_set_level(kLed2GpioNum, 0);
+        rtc_gpio_hold_en(kLed0GpioNum);
+        rtc_gpio_hold_en(kLed1GpioNum);
+        rtc_gpio_hold_en(kLed2GpioNum);
+        // Led0::GetInstance().Set(false);
+        // Led1::GetInstance().Set(false);
+        // Led2::GetInstance().Set(false);
         esp_deep_sleep_start();
     }
 }
@@ -20,8 +42,8 @@ void vApplicationIdleHook() {
 
 namespace mcu_sleep {
 void SetupSleep() {
-    uint64_t gpio_mask = (1ULL << kButton0GpioNum) | (1ULL << kButton1GpioNum) |
-                         (1ULL << kButton2GpioNum) | (1ULL << kButton3GpioNum);
+    uint64_t gpio_mask = (1ULL << kButton0InverseGpioNum) | (1ULL << kButton1InverseGpioNum) |
+                         (1ULL << kButton2InverseGpioNum) | (1ULL << kButton3InverseGpioNum);
     assert(esp_sleep_enable_ext1_wakeup(
                gpio_mask, esp_sleep_ext1_wakeup_mode_t::ESP_EXT1_WAKEUP_ANY_HIGH) == ESP_OK);
 }
