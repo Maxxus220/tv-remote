@@ -96,6 +96,9 @@ void ButtonHandler::HandleButton1Press() {
 
     switch (key_layer_) {
         case 0:
+            static constexpr std::array<uint16_t, 2> kVolumeUpCodes{0x40A2, 0x435D};
+            ir_transmitter_.SendCode(kVolumeUpCodes[0]);
+            ir_transmitter_.SendCode(kVolumeUpCodes[1]);
             break;
         case 1:
             break;
@@ -111,6 +114,9 @@ void ButtonHandler::HandleButton2Press() {
 
     switch (key_layer_) {
         case 0:
+            static constexpr std::array<uint16_t, 2> kVolumeDownCodes{0x42A2, 0x415D};
+            ir_transmitter_.SendCode(kVolumeDownCodes[0]);
+            ir_transmitter_.SendCode(kVolumeDownCodes[1]);
             break;
         case 1:
             break;
@@ -126,8 +132,9 @@ void ButtonHandler::HandleButton3Press() {
 
     switch (key_layer_) {
         case 0:
-            ir_transmitter_.SendCode(0x41A2);
-            ir_transmitter_.SendCode(0x425D);
+            static constexpr std::array<uint16_t, 2> kPowerCodes{0x41A2, 0x425D};
+            ir_transmitter_.SendCode(kPowerCodes[0]);
+            ir_transmitter_.SendCode(kPowerCodes[1]);
             break;
         case 1:
             break;
