@@ -1,6 +1,7 @@
 #include "button_handler.h"
 
 #include "button.h"
+#include "sleep.h"
 
 #include "esp_sleep.h"
 
@@ -27,26 +28,6 @@ void ButtonHandler::Init() {
     Button2::GetInstance().RegisterButtonPressIrqCb(ButtonPress2IrqCb);
     Button3::GetInstance().RegisterButtonPressIrqCb(ButtonPress3IrqCb);
 
-    // Handle deep sleep wakeup button presses
-    uint64_t gpio_bit_mask = esp_sleep_get_ext1_wakeup_status();
-    std::optional<uint8_t> button_press_num = std::nullopt;
-    if ((gpio_bit_mask & (1ULL << kButton0InverseGpioNum)) != 0) {
-        button_press_num = kButton0PressNum;
-    } else if ((gpio_bit_mask & (1ULL << kButton1InverseGpioNum)) != 0) {
-        button_press_num = kButton1PressNum;
-    } else if ((gpio_bit_mask & (1ULL << kButton2InverseGpioNum)) != 0) {
-        button_press_num = kButton2PressNum;
-    } else if ((gpio_bit_mask & (1ULL << kButton3InverseGpioNum)) != 0) {
-        button_press_num = kButton3PressNum;
-    } else if (gpio_bit_mask != 0) {
-        printf("Unexpected EXT1 wakeup GPIO!\n");
-        assert(false);
-    }
-
-    if (button_press_num.has_value()) {
-        assert(xQueueSend(s_button_press_queue, &button_press_num.value(), 0) == pdTRUE);
-    }
-
     led_2_.Set(1);
 
     constexpr uint32_t kHandleButtonPressThreadStackSize = 5000;
@@ -61,9 +42,11 @@ void CHandleButtonPressThread(void* args) {
 }
 
 void ButtonHandler::HandleButtonPressThread() {
+    Sleep& sleep = Sleep::GetInstance();
     while (true) {
         uint8_t button_press_num{};
         assert(xQueueReceive(s_button_press_queue, &button_press_num, portMAX_DELAY) == pdTRUE);
+        sleep.Reset();
 
         switch (button_press_num) {
             case 0:

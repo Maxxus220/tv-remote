@@ -5,82 +5,58 @@
 
 #include "esp_sleep.h"
 
-#include <atomic>
-
-std::atomic_bool allow_sleep{false};
-std::atomic_bool allow_sleep_set{false};
+#include <cassert>
 
 extern "C" {
-void vApplicationIdleHook() {
-    // TODO: Async logging
-    if (allow_sleep) {
-        TickType_t kMaxIdleTimeMs = 15000 / portTICK_PERIOD_MS;    // 15000ms
-        vTaskDelay(kMaxIdleTimeMs);
+static bool IRAM_ATTR EnterSleep(gptimer_handle_t timer,
+                                 const gptimer_alarm_event_data_t* event_data, void* user_ctx) {
+    (void)timer;
+    (void)event_data;
+    (void)user_ctx;
 
-        rtc_gpio_init(kLed0GpioNum);
-        rtc_gpio_init(kLed1GpioNum);
-        rtc_gpio_init(kLed2GpioNum);
-        rtc_gpio_set_direction(kLed0GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
-        rtc_gpio_set_direction(kLed1GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
-        rtc_gpio_set_direction(kLed2GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
-        rtc_gpio_set_direction_in_sleep(kLed0GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
-        rtc_gpio_set_direction_in_sleep(kLed1GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
-        rtc_gpio_set_direction_in_sleep(kLed2GpioNum, rtc_gpio_mode_t::RTC_GPIO_MODE_OUTPUT_ONLY);
-        rtc_gpio_set_level(kLed0GpioNum, 0);
-        rtc_gpio_set_level(kLed1GpioNum, 0);
-        rtc_gpio_set_level(kLed2GpioNum, 0);
-        rtc_gpio_hold_en(kLed0GpioNum);
-        rtc_gpio_hold_en(kLed1GpioNum);
-        rtc_gpio_hold_en(kLed2GpioNum);
-        // Led0::GetInstance().Set(false);
-        // Led1::GetInstance().Set(false);
-        // Led2::GetInstance().Set(false);
-        esp_deep_sleep_start();
-    }
+    // TODO: Async logging
+    Led0::GetInstance().EnterDeepSleep();
+    Led1::GetInstance().EnterDeepSleep();
+    Led2::GetInstance().EnterDeepSleep();
+    esp_deep_sleep_start();
+
+    return false;
 }
 };
 
-namespace mcu_sleep {
-void SetupSleep() {
-    uint64_t gpio_mask = (1ULL << kButton0InverseGpioNum) | (1ULL << kButton1InverseGpioNum) |
-                         (1ULL << kButton2InverseGpioNum) | (1ULL << kButton3InverseGpioNum);
+void Sleep::Setup() {
+    // Setup wakeup pins
+    static constexpr uint64_t kWakeupGpioMask =
+        (1ULL << kButton0InverseGpioNum) | (1ULL << kButton1InverseGpioNum) |
+        (1ULL << kButton2InverseGpioNum) | (1ULL << kButton3InverseGpioNum);
     assert(esp_sleep_enable_ext1_wakeup(
-               gpio_mask, esp_sleep_ext1_wakeup_mode_t::ESP_EXT1_WAKEUP_ANY_HIGH) == ESP_OK);
+               kWakeupGpioMask, esp_sleep_ext1_wakeup_mode_t::ESP_EXT1_WAKEUP_ANY_HIGH) == ESP_OK);
+
+    // Setup timer
+    static constexpr gptimer_config_t kSleepTimerConfig{
+        .clk_src = GPTIMER_CLK_SRC_APB,
+        .direction = GPTIMER_COUNT_UP,
+        .resolution_hz = 1000000,    // 1 us per tick
+        .intr_priority = 0,
+        .flags = {.intr_shared = 0, .backup_before_sleep = 0}};
+    assert(gptimer_new_timer(&kSleepTimerConfig, &sleep_timer_) == ESP_OK);
+
+    constexpr gptimer_event_callbacks_t kSleepTimerCallbacksConfig{.on_alarm = EnterSleep};
+    assert(gptimer_register_event_callbacks(sleep_timer_, &kSleepTimerCallbacksConfig, nullptr) ==
+           ESP_OK);
+    assert(gptimer_enable(sleep_timer_) == ESP_OK);
 }
 
-/**
- * These functions are used to allow threads to control times where no thread may be active, but work is still happening in hardware. 
- * For instance, we may need to write on SPI, but want to use interrupts to prevent unnecessary CPU usage. However, you could have the
- * case where no other thread needs to run while we wait for the interrupt from SPI. This could cause the idle thread to run and kick off
- * a sleep. Using these functions, we can temporarily disable sleep.
- */
-
-void EnableSleep() {
-    allow_sleep = true;
-    allow_sleep_set = true;
+void Sleep::Enable() {
+    assert(gptimer_set_raw_count(sleep_timer_, 0) == ESP_OK);
+    static constexpr const gptimer_alarm_config_t k8SCountdownSleepTimerConfig{
+        .alarm_count = 8000000, .reload_count = 0, .flags{.auto_reload_on_alarm = 0}};
+    assert(gptimer_set_alarm_action(sleep_timer_, &k8SCountdownSleepTimerConfig) == ESP_OK);
+    assert(gptimer_start(sleep_timer_) == ESP_OK);
 }
 
-void DisableSleep() {
-    allow_sleep = false;
-    allow_sleep_set = true;
+void Sleep::Reset() {
+    assert(gptimer_stop(sleep_timer_) == ESP_OK);
+    assert(gptimer_set_raw_count(sleep_timer_, 0) == ESP_OK);
+    assert(gptimer_start(sleep_timer_) == ESP_OK);
 }
-
-/**
- * This function exists to allow the main thread to enable sleep as long as nothing else has manually taken control of it. Without this,
- * you could imagine the following scenario:
- * 
- * - Other thread is initialized.
- * - Other thread disables sleep and makes interrupt based call.
- * - Main runs and enables sleep.
- * - Idle thread is called while interrupt based call has not finished and puts MCU to sleep.
- */
-static portMUX_TYPE sleep_if_unused_spinlock = portMUX_INITIALIZER_UNLOCKED;
-void EnableSleepIfUnused() {
-    // There is a race condition without entering a critical section. allow_sleep_set + allow_sleep needs to be atomic.
-    taskENTER_CRITICAL(&sleep_if_unused_spinlock);
-    if (!allow_sleep_set) {
-        allow_sleep = true;
-    }
-    taskEXIT_CRITICAL(&sleep_if_unused_spinlock);
-}
-};    // namespace mcu_sleep

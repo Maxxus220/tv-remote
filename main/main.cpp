@@ -17,7 +17,6 @@ void app_main(void) {
 
     gpio_install_isr_service(0);
 
-    gpio_deep_sleep_hold_en();
     RealTime& real_time = RealTime::GetInstance();
     IrTransmitter& ir_transmitter = IrTransmitter::GetInstance();
     // IrSensor& ir_sensor = IrSensor::GetInstance();
@@ -29,6 +28,7 @@ void app_main(void) {
     Led1& led_1 = Led1::GetInstance();
     Led2& led_2 = Led2::GetInstance();
     ButtonHandler& button_handler = ButtonHandler::GetInstance();
+    Sleep& sleep = Sleep::GetInstance();
 
     real_time.Init();
     ir_transmitter.Init();
@@ -42,8 +42,8 @@ void app_main(void) {
     led_2.Init();
     button_handler.Init();
 
-    mcu_sleep::SetupSleep();
-    mcu_sleep::EnableSleepIfUnused();
+    sleep.Setup();
+    sleep.Enable();
 
     while (true) {
         vTaskDelay(portMAX_DELAY);
