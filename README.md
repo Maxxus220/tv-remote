@@ -12,12 +12,11 @@ Due to this being a personal project, the code is not thoroughly documented and 
 
 The software should be fairly easy to follow by starting in `main.cpp`.
 
-The schematic and PCB layout can be found in the `readme_assets` folder.
+The schematic, PCB layout, and a video of the remote can be found in the `readme_assets` folder.
 
 ![Remote unplugged](./readme_assets/remote_unplugged.jpg)
 ![Remote dual power](./readme_assets/remote_dual_power.jpg)
 ![Remote and enclosure](./readme_assets/remote_and_enclosure.jpg)
-![Remote key set cycling](./readme_assets/remote_key_set_cycling.mp4)
 ![Remote fusion 360](./readme_assets/remote_fusion.png)
 
 ## Main hardware components
